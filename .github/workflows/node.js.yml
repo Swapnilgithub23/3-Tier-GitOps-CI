@@ -10,7 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  compile:
+  Code-Compile:
     runs-on: Agent1
   
     steps:
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
       
       - name: set-up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '24'
   
@@ -32,8 +32,253 @@ jobs:
           cd api
           find . -name "*.js" -exec node --check {} +
   
+  Gitleaks-Scan:
+    runs-on: Agent1
+    needs: Code-Compile
+    
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+        
+      - name: gitleaks setup
+        uses: gitleaks/gitleaks-action@v2
+       
+      - name: gitleaks scan 
+        run: |
+          gitleaks detect --source ./client --exit-code 1
+          gitleaks detect --source ./api --exit-code 1
   
+  Trivy_fs_scan:
+    runs-on: Agent1
+    needs: Gitleaks-Scancan
+  
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+  
+      - name: trivy filesystem vulnerability scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+  
+  sonar-frontend:
+    runs-on: Agent1
+    needs: Trivy_fs_scan
+  
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+  
+      - name: SonarQube scan (client)
+        uses: sonarsource/sonarqube-scan-action@master
+        with:
+          projectBaseDir: client
+          args: >
+            -Dsonar.projectName=My_Project
+            -Dsonar.projectKey=My_Project
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  
+  SonarQube-Quality-GatesCheck-frontend:
+    runs-on: Agent1
+    needs: sonar-frontend
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: "Example show SonarQube Quality Gate Status value"
+        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
 
+  Owasp-Dependency-Check-Frontend:
+    runs-on: Agent1
+    needs: SonarQube-Quality-GatesCheck-frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create report directory
+        run: mkdir -p reports
+
+      - name: Run OWASP Dependency Check
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}/reports:/report \
+            owasp/dependency-check:latest \
+            --project "my-app" \
+            --scan /src \
+            --format "HTML" \
+            --out /report \
+            --failOnCVSS 7
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+        
+  sonar-backend:
+    runs-on: Agent1
+    needs: Owasp-Dependency-Check-Frontend
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+ 
+      - name: SonarQube scan (api)
+        uses: SonarSource/sonarqube-scan-action@6.2.0.4584
+        with:
+          projectBaseDir: api
+          args: >
+            -Dsonar.projectName=My_Project
+            -Dsonar.projectKey=My_Project
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
+          
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} 
+  
+  SonarQube-Quality-GatesCheck-Backend:
+    runs-on: Agent1
+    needs: sonar-backend
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: "Example show SonarQube Quality Gate Status value"
+        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+  
+  Owasp-Dependency-Check-Backend:
+    runs-on: Agent1
+    needs: SonarQube-Quality-GatesCheck-Backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create report directory
+        run: mkdir -p reports
+
+      - name: Run OWASP Dependency Check for Backend
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}/reports:/report \
+            owasp/dependency-check:latest \
+            --project "my-app" \
+            --scan /src \
+            --format "HTML" \
+            --out /report \
+            --failOnCVSS 7
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports
+    
+  Build_backend_docker_image_and_push:
+    runs-on: Agent1
+    needs: Owasp-Dependency-Check-Backend
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+
+      - name: dockerhub login
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: swapnildocker23/backend:latest
+
+  Build_frontend_docker_image_and_push:
+    runs-on: Agent1
+    needs: Build_backend_docker_image_and_push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./client
+          file: ./client/Dockerfile
+          push: true
+          tags: swapnildocker23/frontend:latest
+
+  Trivy_image_scan:
+    runs-on: Agent1
+    needs: Build_frontend_docker_image_and_push
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run Trivy image scan for backend
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: swapnildocker23/backend:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy image scan for frontend
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: swapnildocker23/frontend:latest
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+          
+      
+  
       
   
     
