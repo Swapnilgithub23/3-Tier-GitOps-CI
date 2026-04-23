@@ -50,7 +50,7 @@ jobs:
   
   Trivy_fs_scan:
     runs-on: Agent1
-    needs: Gitleaks-Scancan
+    needs: Gitleaks-Scan
   
     steps:
       - name: checkout code
@@ -67,7 +67,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
   
   sonar-frontend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: Trivy_fs_scan
   
     steps:
@@ -88,7 +88,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
   
   SonarQube-Quality-GatesCheck-frontend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: sonar-frontend
     steps:
       - name: checkout code
@@ -105,7 +105,7 @@ jobs:
         run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
 
   Owasp-Dependency-Check-Frontend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: SonarQube-Quality-GatesCheck-frontend
     steps:
       - name: Checkout code
@@ -133,7 +133,7 @@ jobs:
           path: reports
         
   sonar-backend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: Owasp-Dependency-Check-Frontend
     steps:
       - name: checkout code
@@ -154,7 +154,7 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} 
   
   SonarQube-Quality-GatesCheck-Backend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: sonar-backend
     steps:
       - name: checkout code
@@ -171,7 +171,7 @@ jobs:
         run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
   
   Owasp-Dependency-Check-Backend:
-    runs-on: Agent1
+    runs-on: Agent2
     needs: SonarQube-Quality-GatesCheck-Backend
     steps:
       - name: Checkout code
