@@ -69,7 +69,9 @@ jobs:
   sonar-frontend:
     runs-on: Agent2
     needs: Trivy_fs_scan
-  
+    env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     steps:
       - name: checkout code
         uses: actions/checkout@v6
@@ -83,13 +85,30 @@ jobs:
             -Dsonar.projectKey=My_Project
             -Dsonar.sources=.
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-  
-  SonarQube-Quality-GatesCheck-frontend:
+        
+  sonar-backend:
     runs-on: Agent2
     needs: sonar-frontend
+    env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v6
+ 
+      - name: SonarQube scan (api)
+        uses: SonarSource/sonarqube-scan-action@6.2.0.4584
+        with:
+          projectBaseDir: api
+          args: >
+            -Dsonar.projectName=My_Project
+            -Dsonar.projectKey=My_Project
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
+   
+  SonarQube-Quality-GatesCheck-frontend:
+    runs-on: Agent2
+    needs: sonar-backend
     steps:
       - name: checkout code
         uses: actions/checkout@v4
@@ -103,10 +122,27 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       - name: "Example show SonarQube Quality Gate Status value"
         run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
-
-  Owasp-Dependency-Check-Frontend:
+  
+  SonarQube-Quality-GatesCheck-Backend:
     runs-on: Agent2
     needs: SonarQube-Quality-GatesCheck-frontend
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      - name: "Example show SonarQube Quality Gate Status value"
+        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
+  
+  Owasp-Dependency-Check-Frontend:
+    runs-on: Agent2
+    needs: SonarQube-Quality-GatesCheck-Backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -131,48 +167,10 @@ jobs:
         with:
           name: dependency-check-report
           path: reports
-        
-  sonar-backend:
-    runs-on: Agent2
-    needs: Owasp-Dependency-Check-Frontend
-    steps:
-      - name: checkout code
-        uses: actions/checkout@v6
- 
-      - name: SonarQube scan (api)
-        uses: SonarSource/sonarqube-scan-action@6.2.0.4584
-        with:
-          projectBaseDir: api
-          args: >
-            -Dsonar.projectName=My_Project
-            -Dsonar.projectKey=My_Project
-            -Dsonar.sources=.
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
-          
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }} 
-  
-  SonarQube-Quality-GatesCheck-Backend:
-    runs-on: Agent2
-    needs: sonar-backend
-    steps:
-      - name: checkout code
-        uses: actions/checkout@v4
-      - name: SonarQube Quality Gate check
-        id: sonarqube-quality-gate-check
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        with:
-          pollingTimeoutSec: 600
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      - name: "Example show SonarQube Quality Gate Status value"
-        run: echo "The Quality Gate status is ${{ steps.sonarqube-quality-gate-check.outputs.quality-gate-status }}"
   
   Owasp-Dependency-Check-Backend:
     runs-on: Agent2
-    needs: SonarQube-Quality-GatesCheck-Backend
+    needs: Owasp-Dependency-Check-Frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -197,7 +195,7 @@ jobs:
         with:
           name: dependency-check-report
           path: reports
-   
+      
   Trivy_Config_Scan:
     runs-on: Agent1
     needs: Owasp-Dependency-Check-Backend
@@ -217,7 +215,7 @@ jobs:
           
   Build_backend_docker_image_scan_and_push:
     runs-on: Agent1
-    needs: Owasp-Dependency-Check-Backend
+    needs: Trivy_Config_Scan
     steps:
       - name: checkout code
         uses: actions/checkout@v6
