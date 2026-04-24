@@ -78,7 +78,12 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v6
-  
+      - name: Cleanup previous Sonar Scanner files
+        run: |
+          rm -rf .scannerwork
+          rm -rf ~/.sonar/cache
+      - name: Run SonarScanner
+        run: sonar-scanner -X
       - name: SonarQube scan (client)
         uses: sonarsource/sonarqube-scan-action@v6
         with:
@@ -98,7 +103,12 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v6
- 
+      - name: Cleanup previous Sonar Scanner files
+        run: |
+          rm -rf .scannerwork
+          rm -rf ~/.sonar/cache
+      - name: Run SonarScanner
+        run: sonar-scanner -X
       - name: SonarQube scan (api)
         uses: SonarSource/sonarqube-scan-action@v6
         with:
