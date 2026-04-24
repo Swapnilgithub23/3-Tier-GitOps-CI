@@ -1,3 +1,6 @@
+on:
+  workflow_dispatch:
+
 
 permissions:
   contents: write   # required to push to CD repo with GITHUB_TOKEN or PAT
