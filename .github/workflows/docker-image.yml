@@ -1,10 +1,3 @@
-name: Node.js CI
-
-on:
-  push:
-    branches:
-  pull_request:
-    branches:
 
 permissions:
   contents: write   # required to push to CD repo with GITHUB_TOKEN or PAT
