@@ -77,7 +77,7 @@ jobs:
         uses: actions/checkout@v6
   
       - name: SonarQube scan (client)
-        uses: sonarsource/sonarqube-scan-action@master
+        uses: sonarsource/sonarqube-scan-action@6.2.0.4584
         with:
           projectBaseDir: client
           args: >
@@ -137,7 +137,7 @@ jobs:
         uses: actions/checkout@v4
       - name: SonarQube Quality Gate check
         id: sonarqube-quality-gate-check
-        uses: sonarsource/sonarqube-quality-gate-action@master
+        uses: sonarsource/sonarqube-quality-gate-action@v1
         with:
           pollingTimeoutSec: 600
         env:
@@ -168,7 +168,7 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}:/client \
             -v ${{ github.workspace }}/reports:/report \
             -v ~/.dependency-check:/usr/share/dependency-check/data \
             owasp/dependency-check:latest \
@@ -201,7 +201,7 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           docker run --rm \
-            -v ${{ github.workspace }}:/src \
+            -v ${{ github.workspace }}:/api \
             -v ${{ github.workspace }}/reports:/report \
             -v ~/.dependency-check:/usr/share/dependency-check/data \
             owasp/dependency-check:latest \
