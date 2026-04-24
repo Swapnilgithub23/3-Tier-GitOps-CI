@@ -80,7 +80,7 @@ jobs:
         uses: actions/checkout@v6
   
       - name: SonarQube scan (client)
-        uses: sonarsource/sonarqube-scan-action@6.2.0.4584
+        uses: sonarsource/sonarqube-scan-action@main
         with:
           projectBaseDir: client
           args: >
@@ -100,7 +100,7 @@ jobs:
         uses: actions/checkout@v6
  
       - name: SonarQube scan (api)
-        uses: SonarSource/sonarqube-scan-action@6.2.0.4584
+        uses: SonarSource/sonarqube-scan-action@main
         with:
           projectBaseDir: api
           args: >
