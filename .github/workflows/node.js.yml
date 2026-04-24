@@ -197,8 +197,25 @@ jobs:
         with:
           name: dependency-check-report
           path: reports
-    
-  Build_backend_docker_image_and_push:
+   
+  Trivy_Config_Scan:
+    runs-on: Agent1
+    needs: Owasp-Dependency-Check-Backend
+    steps:
+      - name: checkout code
+        uses: actions/chekout@v4
+      - name: trivy-config-scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+          
+  Build_backend_docker_image_scan_and_push:
     runs-on: Agent1
     needs: Owasp-Dependency-Check-Backend
     steps:
@@ -217,17 +234,33 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
       
-      - name: Build and push
+      - name: Image Build (No Push)
         uses: docker/build-push-action@v7
         with:
           context: ./api
           file: ./api/Dockerfile
-          push: true
+          push: false
           tags: swapnildocker23/backend:latest
+          load: true
+           
+      - name: trivy image scan
+        uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          scan-type: image
+          image-ref: swapnildocker23/backend:latest
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: CRITICAL,HIGH
 
-  Build_frontend_docker_image_and_push:
+      - name: docker image push
+        if: success()
+        run: docker push swapnildocker23/backend:latest
+
+  Build_frontend_docker_image_scan_and_push:
     runs-on: Agent1
-    needs: Build_backend_docker_image_and_push
+    needs: Build_backend_docker_image_scan_and_push
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -245,12 +278,28 @@ jobs:
         with:
           context: ./client
           file: ./client/Dockerfile
-          push: true
+          push: false
           tags: swapnildocker23/frontend:latest
+          load: true
+
+      - name: trivy image scan
+        uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          scan-type: image
+          image-ref: swapnildocker23/frontend:latest
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: CRITICAL,HIGH
+
+      - name: docker image push
+        if: success()
+        run: docker push swapnildocker23/backend:latest
 
   Trivy_image_scan:
     runs-on: Agent1
-    needs: Build_frontend_docker_image_and_push
+    needs: Build_frontend_docker_image_scan_and_push
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
