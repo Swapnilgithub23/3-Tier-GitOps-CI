@@ -41,10 +41,11 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
-        
+      - name: Clean temp files
+        run: rm -f /tmp/gitleaks.tmp 
       - name: gitleaks setup
         uses: gitleaks/gitleaks-action@v2
-       
+
       - name: gitleaks scan 
         run: |
           gitleaks detect --source ./client --exit-code 1
