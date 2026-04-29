@@ -89,6 +89,12 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
             -Dsonar.verbose=true
+
+      - name: Upload report-task.txt
+        uses: actions/upload-artifact@v3
+        with:
+          name: sonar-report-frontend
+          path: client/.scannerwork/report-task.txt
         
   sonar-backend:
     runs-on: Agent2
@@ -117,6 +123,11 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v4
+      - name: Download report-task.txt
+        uses: actions/download-artifact@v3
+        with:
+          name: sonar-report-frontend
+          path: client/.scannerwork/
       - name: SonarQube Quality Gate check
         id: sonarqube-quality-gate-check
         uses: sonarsource/sonarqube-quality-gate-action@master
