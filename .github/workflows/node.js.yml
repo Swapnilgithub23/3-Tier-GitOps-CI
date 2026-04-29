@@ -121,6 +121,7 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
             -Dsonar.verbose=true
+            -X
 
       - name: Upload report-task.txt
         uses: actions/upload-artifact@v4
