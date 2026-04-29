@@ -113,6 +113,7 @@ jobs:
       - name: SonarQube scan (api)
         uses: SonarSource/sonarqube-scan-action@v2
         with:
+          jdkVersion: 21
           projectBaseDir: api
           args: >
             -Dsonar.projectName=My_Project
