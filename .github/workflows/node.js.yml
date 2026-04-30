@@ -228,6 +228,7 @@ jobs:
             owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
             --scan /client \
+            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.next/**,**/out/**,**/.cache/**,**/coverage/**,**/public/**,**/.git/**,**/.vscode/**,**/.idea/** \
             --format ALL \
             --out /report \
             --failOnCVSS 9 \
@@ -273,6 +274,7 @@ jobs:
             owasp/dependency-check:9.0.9 \
             --project "my-app-backend" \
             --scan /api \
+            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.next/**,**/out/**,**/.cache/**,**/coverage/**,**/public/**,**/.git/**,**/.vscode/**,**/.idea/** \
             --format ALL \
             --out /report \
             --failOnCVSS 9 \
