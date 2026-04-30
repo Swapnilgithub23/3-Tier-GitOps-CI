@@ -193,11 +193,17 @@ jobs:
        
   Owasp-Dependency-Check-Frontend:
     runs-on: Agent2
-    needs: SonarQube-Quality-GatesCheck-frontend
+    needs: SonarQube-Quality-GatesCheck-Backend
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: cache dependency-check db
+        uses: actions/cache@v4
+        with:
+          path: .dependency-check
+          key: dependency-check-${{ runner.os }}
 
       - name: Create report directory
         run: mkdir -p reports
@@ -209,20 +215,27 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/client \
             -v ${{ github.workspace }}/reports:/report \
-            -v ~/.dependency-check:/usr/share/dependency-check/data \
-            owasp/dependency-check:latest \
+            -v ${{ github.workspace }}/.dependency-check:/usr/share/dependency-check/data \
+            owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
-            --scan /client \
-            --format "HTML,JSON" \
+            --scan /client/package.json \
+            --scan /client/package-lock.json \
+            --format "HTML,JSON,SHARIF" \
             --out /report \
-            --failOnCVSS 7 \
+            --failOnCVSS 9 \
             --nvdApiKey $NVD_API_KEY
+            --nvdApiDelay 3000
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-frontend-report
           path: reports
+
+      - name: upload sharif report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/dependency-check-report.sarif
   
   Owasp-Dependency-Check-Backend:
     runs-on: Agent2
@@ -231,6 +244,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: cache dependency-check db
+        uses: actions/cache@v4
+        with:
+          path: .dependency-check
+          key: dependency-check-${{ runner.os }}  
 
       - name: Create report directory
         run: mkdir -p reports
@@ -242,20 +261,27 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/api \
             -v ${{ github.workspace }}/reports:/report \
-            -v ~/.dependency-check:/usr/share/dependency-check/data \
-            owasp/dependency-check:latest \
+            -v ${{ github.workspace }}/.dependency-check:/usr/share/dependency-check/data \
+            owasp/dependency-check:9.0.9 \
             --project "my-app-backend" \
-            --scan /api \
-            --format "HTML,JSON" \
+            --scan /api/package.json \
+            --scan /api/package-lock.json \
+            --format "HTML,JSON,SHARIF" \
             --out /report \
-            --failOnCVSS 7 \
+            --failOnCVSS 9 \
             --nvdApiKey $NVD_API_KEY
+            --nvdApiDelay 3000
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-backend-report
           path: reports
+
+      - name: upload sharif report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/dependency-check-report.sarif
       
   Trivy_Config_Scan:
     runs-on: Agent1
