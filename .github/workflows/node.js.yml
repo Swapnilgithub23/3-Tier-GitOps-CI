@@ -162,7 +162,7 @@ jobs:
   
   SonarQube-Quality-GatesCheck-Backend:
     runs-on: Agent2
-    needs: SonarQube-Quality-GatesCheck-frontend
+    needs: sonar-backend
     steps:
       - name: checkout code
         uses: actions/checkout@v6
@@ -218,8 +218,7 @@ jobs:
             -v ${{ github.workspace }}/.dependency-check:/usr/share/dependency-check/data \
             owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
-            --scan /client/package.json \
-            --scan /client/package-lock.json \
+            --scan /client \
             --format "HTML,JSON,SHARIF" \
             --out /report \
             --failOnCVSS 9 \
