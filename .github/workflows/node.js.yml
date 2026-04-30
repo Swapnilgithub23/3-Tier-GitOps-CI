@@ -236,7 +236,7 @@ jobs:
   
   Owasp-Dependency-Check-Backend:
     runs-on: Agent2
-    needs: SonarQube-Quality-GatesCheck-Backend
+    needs: Owasp-Dependency-Check-Frontend
 
     steps:
       - name: Checkout code
