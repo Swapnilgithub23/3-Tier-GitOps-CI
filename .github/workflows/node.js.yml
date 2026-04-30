@@ -212,8 +212,6 @@ jobs:
         run: mkdir -p reports
 
       - name: Run OWASP Dependency Check for Frontend
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/client \
@@ -224,9 +222,7 @@ jobs:
             --exclude **/node_modules/**,**/dist/**,**/build/**,**/.next/**,**/out/**,**/.cache/**,**/coverage/**,**/public/**,**/.git/**,**/.vscode/**,**/.idea/** \
             --format HTML \
             --out /report \
-            --failOnCVSS 9 \
-            --nvdApiKey $NVD_API_KEY
-            --nvdApiDelay 50
+            --failOnCVSS 9 
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
