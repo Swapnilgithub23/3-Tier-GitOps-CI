@@ -219,7 +219,7 @@ jobs:
             owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
             --scan /client \
-            --format "HTML,JSON,SHARIF" \
+            --format "HTML,JSON,SARIF" \
             --out /report \
             --failOnCVSS 9 \
             --nvdApiKey $NVD_API_KEY
