@@ -211,6 +211,11 @@ jobs:
       - name: Create report directory
         run: mkdir -p reports
 
+      - name: Clean Dependency-Check cache (fix DB issues)
+        run: |
+          rm -rf ~/.m2/repository/org/owasp/dependency-check || true
+          rm -rf ${{ github.workspace }}/.dependency-check || true
+
       - name: Run OWASP Dependency Check for Frontend
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -221,12 +226,15 @@ jobs:
             owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
             --scan /client \
-            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.next/**,**/out/**,**/.cache/**,**/coverage/**,**/public/**,**/.git/**,**/.vscode/**,**/.idea/** \
-            --format JSON \
+            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.git/** \
+            --format ALL \
             --out /report \
             --failOnCVSS 9 \
             --nvdApiKey $NVD_API_KEY \
-            --nvdApiDelay 50
+            --nvdApiDelay 300 \
+            --noupdate \
+            --enableRetired \
+            --disableAssembly
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
@@ -245,6 +253,11 @@ jobs:
       - name: Create report directory
         run: mkdir -p reports
 
+      - name: Clean Dependency-Check cache (fix DB issues)
+        run: |
+          rm -rf ~/.m2/repository/org/owasp/dependency-check || true
+          rm -rf ${{ github.workspace }}/.dependency-check || true  
+
       - name: Run OWASP Dependency Check for Backend
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
@@ -255,12 +268,15 @@ jobs:
             owasp/dependency-check:9.0.9 \
             --project "my-app-backend" \
             --scan /api \
-            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.next/**,**/out/**,**/.cache/**,**/coverage/**,**/public/**,**/.git/**,**/.vscode/**,**/.idea/** \
-            --format JSON \
+            --exclude **/node_modules/**,**/dist/**,**/build/**,**/.git/** \
+            --format ALL \
             --out /report \
             --failOnCVSS 9 \
             --nvdApiKey $NVD_API_KEY \
-            --nvdApiDelay 50
+            --nvdApiDelay 300 \
+            --noupdate \
+            --enableRetired \
+            --disableAssembly
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
