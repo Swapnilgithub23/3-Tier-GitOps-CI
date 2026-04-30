@@ -53,7 +53,7 @@ jobs:
   
   Trivy_fs_scan:
     runs-on: Agent1
-    needs: Gitleaks-Scan
+    needs: Code-Compile
   
     steps:
       - name: checkout code
@@ -105,7 +105,7 @@ jobs:
         
   sonar-backend:
     runs-on: Agent2
-    needs: sonar-frontend
+    needs: Trivy_fs_scan
     env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
@@ -247,7 +247,7 @@ jobs:
   
   Owasp-Dependency-Check-Backend:
     runs-on: Agent2
-    needs: Owasp-Dependency-Check-Frontend
+    needs: SonarQube-Quality-GatesCheck-Backend
 
     steps:
       - name: Checkout code
