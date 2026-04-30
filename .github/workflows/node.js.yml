@@ -223,6 +223,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/client \
             -v ${{ github.workspace }}/reports:/report \
+            -v /home/ubuntu/owasp-cache:/usr/share/dependency-check/data \
             owasp/dependency-check:9.0.9 \
             --project "my-app-frontend" \
             --scan /client \
@@ -261,6 +262,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/api \
             -v ${{ github.workspace }}/reports:/report \
+            -v /home/ubuntu/owasp-cache:/usr/share/dependency-check/data \
             owasp/dependency-check:9.0.9 \
             --project "my-app-backend" \
             --scan /api \
