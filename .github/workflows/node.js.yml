@@ -76,15 +76,15 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     steps:
-      - name: checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0 
-
       - name: Clean Sonar scanner cache
         run: |
           sudo rm -rf client/.scannerwork || true
           sudo chown -R $USER:$USER client || true
+    
+      - name: checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 
       
       - name: SonarQube scan (client)
         uses: sonarsource/sonarqube-scan-action@v2
@@ -110,6 +110,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
     steps:
+      - name: Clean Sonar scanner cache
+        run: |
+          sudo rm -rf client/.scannerwork || true
+          sudo chown -R $USER:$USER client || true
+          
       - name: checkout code
         uses: actions/checkout@v6
         with:
@@ -118,7 +123,6 @@ jobs:
       - name: SonarQube scan (api)
         uses: SonarSource/sonarqube-scan-action@v2
         with:
-          jdkVersion: 21
           projectBaseDir: api
           args: >
             -Dsonar.projectName=My_Project
